@@ -44,7 +44,7 @@ struct ControlIndividual
     double eval(const Eigen::Matrix<double, 1, dim> &x)
     {
         Eigen::Vector<double, 6> state = Value::init_state;
-        int inv = 0;
+        double cost = 0;
         for (int i = 0; i < dim; i += 2)
         {
             Eigen::Vector3d ddq;
@@ -54,13 +54,10 @@ struct ControlIndividual
 
             state.segment(0, 3) += state.segment(3, 3) * Value::Param::Sim::dt + 0.5 * ddq * Value::Param::Sim::dt * Value::Param::Sim::dt;
             state.segment(3, 3) += ddq * Value::Param::Sim::dt;
-            if (abs(Value::target[2] - state[2]) > M_PI / 4)
-            {
-                inv += 5;
-            }
+            cost += (Value::target.segment(0, 3) - state.segment(0, 3)).squaredNorm() + 3.5 * i / dim * state.segment(3, 3).squaredNorm();
         }
 
-        return -(Value::target.segment(0, 2) - state.segment(0, 2)).norm() - 0.1 * (Value::target.segment(3, 2) - state.segment(3, 2)).norm() - inv;
+        return -cost;
     }
 };
 

@@ -1,0 +1,6 @@
+[submodule "algevo"]
+	path = algevo
+	url = https://github.com/NOSALRO/algevo
+[submodule "simple_nn"]
+	path = simple_nn
+	url = https://github.com/resibots/simple_nn

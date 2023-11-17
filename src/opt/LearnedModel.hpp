@@ -3,11 +3,11 @@
 #include <Eigen/Core>
 #include <vector>
 
-#include "simple_nn/neural_net.hpp"
-#include "simple_nn/layer.hpp"
-#include "simple_nn/activation.hpp"
-#include "simple_nn/loss.hpp"
-#include "simple_nn/opt.hpp"
+#include "simple_nn/src/simple_nn/neural_net.hpp"
+#include "simple_nn/src/simple_nn/layer.hpp"
+#include "simple_nn/src/simple_nn/activation.hpp"
+#include "simple_nn/src/simple_nn/loss.hpp"
+#include "simple_nn/src/simple_nn/opt.hpp"
 
 #include "src/params.hpp"
 

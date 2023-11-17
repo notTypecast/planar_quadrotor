@@ -9,7 +9,7 @@
 #include "src/opt/Individual.hpp"
 #include "src/opt/LearnedModel.hpp"
 
-#include "algevo/cem.hpp"
+#include "algevo/src/algevo/algo/cem.hpp"
 
 using Algo = algevo::algo::CrossEntropyMethod<pq::opt::ControlIndividual>;
 
@@ -70,6 +70,7 @@ int main(int argc, char **argv)
 
         elapsed += end - start;
 
+        params.init_mu = cem.best();
         Eigen::Vector2d controls = cem.best().segment(0, 2);
 
         p.update(controls, pq::Value::Param::Sim::dt);

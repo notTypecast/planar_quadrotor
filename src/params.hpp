@@ -1,7 +1,7 @@
-#include <Eigen/Core>
-
 #ifndef PARAMS_HPP
 #define PARAMS_HPP
+#include <Eigen/Core>
+#include <memory>
 
 namespace pq
 {
@@ -33,7 +33,7 @@ namespace pq
             {
                 constexpr int target_x = 10;
                 constexpr int target_y = 10;
-                constexpr double g = Constant::gm;
+                constexpr double g = 100;
                 constexpr double mass = Constant::mass;
                 constexpr double length = Constant::length;
                 constexpr double inertia = Constant::inertia;
@@ -43,14 +43,14 @@ namespace pq
                 constexpr int num_elites = 32;
                 constexpr double max_value = Constant::mass * Constant::g;
                 constexpr double min_value = 0.0;
-                constexpr double init_mu = 0.5 * mass * Constant::g; // TODO: should use Opt::g here?
+                constexpr double init_mu = 0.5 * mass * Constant::g;
                 constexpr double init_std = 0.3;
             }
             namespace NN
             {
-                constexpr bool use = true;
                 constexpr int epochs = 10000;
-                constexpr int collection_steps = 1000;
+                constexpr int collection_steps = 200;
+                constexpr int episodes = 10;
             }
         }
 

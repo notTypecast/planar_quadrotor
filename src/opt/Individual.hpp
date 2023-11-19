@@ -23,7 +23,7 @@ namespace pq
                 {
                     Eigen::Vector2d controls = x.block<1, 2>(0, i).transpose();
                     Eigen::Vector3d ddq = pq::opt::dynamic_model_predict(state, controls);
-                    if (pq::Value::Param::NN::use && pq::Value::learned_model->trained())
+                    if (pq::Value::learned_model->trained())
                     {
                         ddq += pq::Value::learned_model->predict((Eigen::Vector<double, 8>() << state, controls).finished());
                     }

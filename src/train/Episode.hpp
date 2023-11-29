@@ -5,6 +5,7 @@
 #include <chrono>
 #include <sstream>
 #include <iomanip>
+#include <memory>
 
 #include "src/params.hpp"
 #include "src/sim/PlanarQuadrotor.hpp"
@@ -24,8 +25,8 @@ namespace pq
         public:
             Episode()
             {
-                _train_input = Eigen::MatrixXd(8, pq::Value::Param::NN::collection_steps);
-                _train_target = Eigen::MatrixXd(3, pq::Value::Param::NN::collection_steps);
+                _train_input = Eigen::MatrixXd(8, pq::Value::Param::Train::collection_steps);
+                _train_target = Eigen::MatrixXd(3, pq::Value::Param::Train::collection_steps);
                 _params.dim = pq::opt::ControlIndividual::dim;
                 _params.pop_size = pq::Value::Param::Opt::pop_size;
                 _params.num_elites = pq::Value::Param::Opt::num_elites;
@@ -34,7 +35,50 @@ namespace pq
                 _params.init_std = Algo::x_t::Constant(_params.dim, pq::Value::Param::Opt::init_std);
             }
 
+            void run(pq::sim::Visualizer &v)
+            {
+                _visualize = true;
+                _v = v;
+                _run();
+            }
+
             void run()
+            {
+                _visualize = false;
+                _run();
+            }
+
+            Eigen::MatrixXd get_train_input()
+            {
+                return _train_input;
+            }
+
+            Eigen::MatrixXd get_train_target()
+            {
+                return _train_target;
+            }
+
+            void set_error_array(std::shared_ptr<double> errors)
+            {
+                _errors = errors;
+            }
+
+            void set_run(int run)
+            {
+                _run_iter = run;
+            }
+
+        private:
+            Eigen::MatrixXd _train_input;
+            Eigen::MatrixXd _train_target;
+            Algo::Params _params;
+            int _episode = 1;
+            int _run_iter = -1;
+            bool _visualize = false;
+            pq::sim::Visualizer _v;
+            std::shared_ptr<double> _errors = nullptr;
+
+            void _run()
             {
                 _params.init_mu = Algo::x_t::Constant(_params.dim, pq::Value::Param::Opt::init_mu);
 
@@ -46,7 +90,9 @@ namespace pq
                 std::chrono::duration<double> total_time = std::chrono::duration<double>::zero();
                 auto real_start = std::chrono::high_resolution_clock::now();
 
-                for (int i = 0; i < pq::Value::Param::NN::collection_steps; ++i)
+                int episode_idx = (_run_iter - 1) * pq::Value::Param::Train::episodes * pq::Value::Param::Train::collection_steps + (_episode - 1) * pq::Value::Param::Train::collection_steps;
+
+                for (int i = 0; i < pq::Value::Param::Train::collection_steps; ++i)
                 {
                     total_time += std::chrono::high_resolution_clock::now() - real_start;
                     real_start = std::chrono::high_resolution_clock::now();
@@ -85,8 +131,16 @@ namespace pq
                        << " sec (ratio " << pq::Value::Param::Sim::dt / std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::high_resolution_clock::now() - real_start).count()
                        << "), MPC gravity: " << pq::Value::Param::Opt::g
                        << " m/s^2, episode: " << _episode;
-                    _v.set_message(ss.str());
-                    _v.show(p, {pq::Value::Param::Opt::target_x, pq::Value::Param::Opt::target_y});
+                    if (_run_iter != -1)
+                    {
+                        ss << ", run: " << _run_iter;
+                        _errors.get()[episode_idx + i] = (pq::Value::target.segment(0, 6) - p.get_state().segment(0, 6)).squaredNorm();
+                    }
+                    if (_visualize)
+                    {
+                        _v.set_message(ss.str());
+                        _v.show(p, {pq::Value::Param::Opt::target_x, pq::Value::Param::Opt::target_y});
+                    }
 
                     ++count;
                     if (elapsed.count() > 1)
@@ -99,23 +153,6 @@ namespace pq
 
                 ++_episode;
             }
-
-            Eigen::MatrixXd get_train_input()
-            {
-                return _train_input;
-            }
-
-            Eigen::MatrixXd get_train_target()
-            {
-                return _train_target;
-            }
-
-        private:
-            Eigen::MatrixXd _train_input;
-            Eigen::MatrixXd _train_target;
-            Algo::Params _params;
-            pq::sim::Visualizer _v;
-            int _episode = 1;
         };
     }
 }

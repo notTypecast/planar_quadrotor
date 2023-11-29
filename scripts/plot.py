@@ -39,9 +39,9 @@ for i in range(episodes):
 # Create one plot for each episode
 for i in range(episodes):
     plt.plot(episode_data[i], label=f"Episode {i+1}")
-    plt.xlabel("Steps")
-    plt.ylabel("Error")
-    plt.title(f"g = {g}")
-    plt.legend()
-    plt.savefig(f"plots/{g}_{i+1}.png")
-    plt.clf()
+
+plt.xlabel("Steps")
+plt.ylabel("Error")
+plt.title(f"g = {g}")
+plt.legend()
+plt.savefig(f"plots/plot_{g}.png")

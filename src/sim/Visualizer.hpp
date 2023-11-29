@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <map>
 #include <string>
+#include <memory>
 
 #include "src/sim/PlanarQuadrotor.hpp"
 #define SCALE 10.0
@@ -29,7 +30,7 @@ namespace pq
                 _cols = w.ws_col;
                 _zero_x = _cols / 2;
                 _zero_y = _rows / 2;
-                _grid = new char[_rows * _cols * CELLBYTES];
+                _grid = std::shared_ptr<char[]>(new char[_rows * _cols * CELLBYTES]);
             }
 
             void set_message(std::string msg)
@@ -81,7 +82,7 @@ namespace pq
         private:
             int _zero_x, _zero_y;
             int _rows, _cols;
-            char *_grid;
+            std::shared_ptr<char[]> _grid;
             bool _use_scale, _increase_scale;
             double _scale;
             std::string _message;
@@ -126,7 +127,10 @@ namespace pq
                         _grid[i + j] = 0;
                     }
                 }
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-result"
                 system("clear");
+#pragma GCC diagnostic pop
             }
 
             void _write_to_screen()

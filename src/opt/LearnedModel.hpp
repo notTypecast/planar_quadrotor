@@ -62,6 +62,13 @@ namespace pq
                 return _network.forward(input);
             }
 
+            void reset()
+            {
+                _trained = false;
+                _network.set_weights(Eigen::VectorXd::Zero(_network.num_weights()));
+                _optimizer.reset(Eigen::VectorXd::Zero(_network.num_weights()));
+            }
+
             bool trained()
             {
                 return _trained;

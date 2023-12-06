@@ -54,7 +54,7 @@ namespace pq
             {
                 constexpr int collection_steps = 150; // number of steps to collect data for training (per episode)
                 constexpr int episodes = 10;          // number of episodes to train
-                constexpr int runs = 10;              // number of runs to train (for averaging)
+                constexpr int runs = 100;             // number of runs to train (for averaging)
             }
         }
 

@@ -22,6 +22,7 @@ int main(int argc, char **argv)
 
     double gs[] = {18, 39, 100};
     std::shared_ptr<double> errors(new double[pq::Value::Param::Train::collection_steps * pq::Value::Param::Train::episodes * pq::Value::Param::Train::runs]);
+    memset(errors.get(), 0, pq::Value::Param::Train::collection_steps * pq::Value::Param::Train::episodes * pq::Value::Param::Train::runs * sizeof(double));
     // pq::sim::Visualizer v;
 
     for (int i = 0; i < 3; ++i)
@@ -42,6 +43,12 @@ int main(int argc, char **argv)
             {
                 std::cout << k << " " << std::flush;
                 episode.run();
+                if (k > 0 && errors.get()[k * pq::Value::Param::Train::collection_steps - 1] - errors.get()[(k + 1) * pq::Value::Param::Train::collection_steps - 1] < 10e-4)
+                {
+                    std::cout << ":done";
+                    break;
+                }
+
                 pq::Value::learned_model->train(episode.get_train_input(), episode.get_train_target());
             }
             std::cout << std::endl;

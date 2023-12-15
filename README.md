@@ -74,6 +74,7 @@ Where:
 * $d(\cdot)$ is the dynamic model.
 
 A learned model trained in this way allows us to then express the predicted value for each time step as such:
+
 $$
     \begin{align}
         \ddot{\textbf{q}_p} = \textit{d}(\textbf{x}) + \textit{l}(\textbf{x})

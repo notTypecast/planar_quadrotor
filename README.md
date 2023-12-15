@@ -26,7 +26,7 @@ The algorithm runs iteratively and, once finished, provides the individual with 
 
 In order to run this simulation at each time step, for each individual, we need a model: a method for calculating the accelerations at that time step, based on the input controls. For the PQ, we can easily derive the following forward dynamics model:
 
-$\Large
+$$\Large
 \begin{align}
     \ddot{\textbf{q}} &= \begin{bmatrix}
         \frac{-(c_1+c_2)sin(q_3)}{m}\\\\
@@ -34,7 +34,7 @@ $\Large
         \frac{(c_2 - c_1)l}{2I}
     \end{bmatrix}
 \end{align}
-$
+$$
 
 Where:
 * $c_1$ and $c_2$ are the provided controls.
@@ -53,7 +53,7 @@ Now that the true and used model are different to each other, the predicted stat
 
 More specifically, the input of the learned model needs to be the same as that of the dynamic model: the state of the PQ, as well as the controls used for the next time step. The training target needs to be the difference between the actual acceleration caused and the predicted acceleration of the existing dynamic model.
 
-$
+$$
     \begin{align}
         \textbf{x} &= \begin{bmatrix}
             \textbf{q}\\
@@ -63,7 +63,7 @@ $
         \end{bmatrix},\
         \textbf{t} = \textbf{a}-\textit{d}(\textbf{x})
     \end{align}
-$
+$$
 
 Where:
 * $\textbf{x}$ and $\textbf{t}$ are the input and desired output, respectively.
@@ -74,11 +74,11 @@ Where:
 * $d(\cdot)$ is the dynamic model.
 
 A learned model trained in this way allows us to then express the predicted value for each time step as such:
-$
+$$
     \begin{align}
         \ddot{\textbf{q}_p} = \textit{d}(\textbf{x}) + \textit{l}(\textbf{x})
     \end{align}
-$
+$$
 
 Where $\textit{l}(\cdot)$ is the learned model.
 

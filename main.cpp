@@ -32,6 +32,7 @@ int main(int argc, char **argv)
 
         for (int j = 0; j < pq::Value::Param::Train::runs; ++j)
         {
+            std::srand(std::time(NULL));
             std::cout << "Run " << j << std::endl;
             pq::Value::learned_model->reset();
             pq::train::Episode episode;

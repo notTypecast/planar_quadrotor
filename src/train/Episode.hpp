@@ -35,17 +35,17 @@ namespace pq
                 _params.init_std = Algo::x_t::Constant(_params.dim, pq::Value::Param::Opt::init_std);
             }
 
-            void run(pq::sim::Visualizer &v)
+            std::vector<double> run(pq::sim::Visualizer &v)
             {
                 _visualize = true;
                 _v = v;
-                _run();
+                return _run();
             }
 
-            void run()
+            std::vector<double> run()
             {
                 _visualize = false;
-                _run();
+                return _run();
             }
 
             Eigen::MatrixXd get_train_input()
@@ -56,11 +56,6 @@ namespace pq
             Eigen::MatrixXd get_train_target()
             {
                 return _train_target;
-            }
-
-            void set_error_array(std::shared_ptr<double> errors)
-            {
-                _errors = errors;
             }
 
             void set_run(int run)
@@ -76,9 +71,8 @@ namespace pq
             int _run_iter = -1;
             bool _visualize = false;
             pq::sim::Visualizer _v;
-            std::shared_ptr<double> _errors = nullptr;
 
-            void _run()
+            std::vector<double> _run()
             {
                 _params.init_mu = Algo::x_t::Constant(_params.dim, pq::Value::Param::Opt::init_mu);
 
@@ -91,6 +85,8 @@ namespace pq
                 auto real_start = std::chrono::high_resolution_clock::now();
 
                 int episode_idx = (_run_iter - 1) * pq::Value::Param::Train::episodes * pq::Value::Param::Train::collection_steps + (_episode - 1) * pq::Value::Param::Train::collection_steps;
+
+                std::vector<double> errors(pq::Value::Param::Train::collection_steps, 0);
 
                 for (int i = 0; i < pq::Value::Param::Train::collection_steps; ++i)
                 {
@@ -121,6 +117,8 @@ namespace pq
                     Eigen::Vector2d controls = cem.best().segment(0, 2);
 
                     p.update(controls, pq::Value::Param::Sim::dt);
+                    errors[i] = (pq::Value::target.segment(0, 6) - p.get_state().segment(0, 6)).squaredNorm();
+
                     _train_input.col(i) = (Eigen::Vector<double, 8>() << pq::Value::init_state, controls).finished();
                     _train_target.col(i) = p.get_last_ddq() - pq::opt::dynamic_model_predict(pq::Value::init_state, controls);
 
@@ -129,12 +127,11 @@ namespace pq
                        << " Hz, angle: " << p.get_state()[2] * 360 / M_PI
                        << " deg, time: " << p.get_sim_time()
                        << " sec (ratio " << pq::Value::Param::Sim::dt / std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::high_resolution_clock::now() - real_start).count()
-                       << "), MPC gravity: " << pq::Value::Param::Opt::g
-                       << " m/s^2, episode: " << _episode;
+                       << "), MPC mass: " << pq::Value::Param::Opt::mass
+                       << " kg, episode: " << _episode;
                     if (_run_iter != -1)
                     {
                         ss << ", run: " << _run_iter;
-                        _errors.get()[episode_idx + i] = (pq::Value::target.segment(0, 6) - p.get_state().segment(0, 6)).squaredNorm();
                     }
                     if (_visualize)
                     {
@@ -152,21 +149,11 @@ namespace pq
                 }
 
                 ++_episode;
+
+                return errors;
             }
         };
     }
-}
-
-void run_episode(Eigen::MatrixXd &train_input, Eigen::MatrixXd &train_target)
-{
-    Algo::Params params;
-    params.dim = pq::opt::ControlIndividual::dim;
-    params.pop_size = pq::Value::Param::Opt::pop_size;
-    params.num_elites = pq::Value::Param::Opt::num_elites;
-    params.max_value = Algo::x_t::Constant(params.dim, pq::Value::Param::Opt::max_value);
-    params.min_value = Algo::x_t::Constant(params.dim, pq::Value::Param::Opt::min_value);
-    params.init_mu = Algo::x_t::Constant(params.dim, pq::Value::Param::Opt::init_mu);
-    params.init_std = Algo::x_t::Constant(params.dim, pq::Value::Param::Opt::init_std);
 }
 
 #endif

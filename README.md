@@ -1,6 +1,6 @@
 # Combining a dynamic model with a learned model for Planar Quadrotor control
 This repository implements the following:
-* A simulator for a planar quadrotor system. The simulation only includes gravity, as well as two forces acting on the PQ, one on each rotor, opposite to the direction of gravity.
+* A simulator for a planar quadrotor system. The simulation only includes gravity, as well as two forces acting on the PQ, one on each rotor, perpendicular to the length of the PQ.
 * An optimizer, utlizing the CEM algorithm to control the PQ and lead it to a specified position.
 
 ## Simulation
@@ -44,7 +44,7 @@ Where:
 
 Since the simulator and the optimizer use the exact same dynamic model, this works perfectly on its own. As long as an appropriate cost function is used, the optimizer is easily able to calculate the required controls to reach the target position.
 
-Next, it is necessary to mimic a situation in which the dynamic model is either not known, or is too complex to account for. In order to do this, there needs to be a mismatch between the actual dynamic model, used by the simulator, and the dynamic model used by the optimizer to find the optimal controls. There are multiple ways to do this, but in this repository, we alter the gravitational acceleration used by the optimizer.
+Next, it is necessary to mimic a situation in which the dynamic model is either not known, or is too complex to account for. In order to do this, there needs to be a mismatch between the actual dynamic model, used by the simulator, and the dynamic model used by the optimizer to find the optimal controls. There are multiple ways to do this, but in this repository, we alter the mass (and subsequently inertia) used by the optimizer.
 
 With a large enough difference between the two gravitational acceleration values, the controls provided by the optimizer result in movement that leads the PQ far from the desired target position.
 

@@ -1,5 +1,5 @@
-#ifndef LEARNED_MODEL_HPP
-#define LEARNED_MODEL_HPP
+#ifndef PQ_LEARNED_MODEL_HPP
+#define PQ_LEARNED_MODEL_HPP
 #include <Eigen/Core>
 #include <vector>
 
@@ -13,7 +13,7 @@
 
 namespace pq
 {
-    namespace opt
+    namespace cem_opt
     {
         class NNModel
         {
@@ -43,7 +43,7 @@ namespace pq
 
                 Eigen::VectorXd theta;
 
-                for (int i = 0; i < pq::Value::Param::NN::epochs; ++i)
+                for (int i = 0; i < pq::Value::Param::SimpleNN::epochs; ++i)
                 {
                     bool stop;
                     std::tie(stop, std::ignore, theta) = _optimizer.optimize_once(eval);

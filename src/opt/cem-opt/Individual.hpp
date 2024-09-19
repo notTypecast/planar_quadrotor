@@ -1,18 +1,18 @@
-#ifndef INDIVIDUAL_HPP
-#define INDIVIDUAL_HPP
+#ifndef PQ_INDIVIDUAL_HPP
+#define PQ_INDIVIDUAL_HPP
 #include <Eigen/Core>
 
 #include "src/params.hpp"
 #include "src/opt/DynamicModel.hpp"
-#include "src/opt/LearnedModel.hpp"
+#include "src/opt/cem-opt/LearnedModel.hpp"
 
 namespace pq
 {
-    namespace opt
+    namespace cem_opt
     {
         struct ControlIndividual
         {
-            static constexpr unsigned int dim = 2 * pq::Value::Param::Opt::horizon;
+            static constexpr unsigned int dim = 2 * pq::Value::Param::CEMOpt::horizon;
 
             // Individual: [u11, u12, ..., uh1, uh2]  (size 2h)
             double eval(const Eigen::Matrix<double, 1, dim> &x)
@@ -22,7 +22,7 @@ namespace pq
                 for (int i = 0; i < dim; i += 2)
                 {
                     Eigen::Vector2d controls = x.block<1, 2>(0, i).transpose();
-                    Eigen::Vector3d ddq = pq::opt::dynamic_model_predict(state, controls);
+                    Eigen::Vector3d ddq = pq::dynamic_model_predict(state, controls, pq::Value::Param::CEMOpt::model_params);
                     if (pq::Value::learned_model->trained())
                     {
                         ddq += pq::Value::learned_model->predict((Eigen::Vector<double, 8>() << state, controls).finished());

@@ -1,11 +1,11 @@
-#ifndef PARAMS_HPP
-#define PARAMS_HPP
+#ifndef PQ_PARAMS_HPP
+#define PQ_PARAMS_HPP
 #include <Eigen/Core>
 #include <memory>
 
 namespace pq
 {
-    namespace opt
+    namespace cem_opt
     {
         class NNModel;
     }
@@ -29,7 +29,7 @@ namespace pq
                 constexpr double dt = 0.05;                 // simulation time step
                 constexpr bool sync_with_real_time = false; // whether to sync simulation with real time (ratio <= 1)
             }
-            namespace Opt
+            namespace CEMOpt
             {
                 constexpr int target_x = 10;                                   // target x position
                 constexpr int target_y = 10;                                   // target y position
@@ -45,10 +45,19 @@ namespace pq
                 constexpr double min_value = 0.0;                              // minimum control input force
                 constexpr double init_mu = 0.5 * Constant::mass * Constant::g; // initial mean for CEM
                 constexpr double init_std = 0.3;                               // initial standard deviation for CEM
+                Eigen::Vector4d model_params;
             }
-            namespace NN
+            namespace SimpleNN
             {
                 constexpr int epochs = 10000; // number of epochs for training
+            }
+            namespace NumOpt
+            {
+                constexpr int target_x = 10;                           // target x position
+                constexpr int target_y = 10;                           // target y position
+                constexpr int horizon = 100;                           // Horizon
+                constexpr double dt = Sim::dt;                         // optimization time step
+                constexpr double F_max = Constant::mass * Constant::g; // maximum force
             }
             namespace Train
             {
@@ -61,7 +70,7 @@ namespace pq
         Eigen::Vector<double, 6> init_state;
         Eigen::Vector<double, 6> target;
 
-        std::unique_ptr<pq::opt::NNModel> learned_model;
+        std::unique_ptr<pq::cem_opt::NNModel> learned_model;
     }
 }
 

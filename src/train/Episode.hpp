@@ -1,5 +1,5 @@
-#ifndef EPISODE_HPP
-#define EPISODE_HPP
+#ifndef PQ_EPISODE_HPP
+#define PQ_EPISODE_HPP
 #include <Eigen/Core>
 #include <iostream>
 #include <chrono>
@@ -8,13 +8,14 @@
 #include <memory>
 
 #include "src/params.hpp"
+#include "src/opt/Optimizer.hpp"
+#include "src/opt/DynamicModel.hpp"
 #include "src/sim/PlanarQuadrotor.hpp"
 #include "src/sim/Visualizer.hpp"
-#include "src/opt/Individual.hpp"
 
 #include "algevo/src/algevo/algo/cem.hpp"
 
-using Algo = algevo::algo::CrossEntropyMethod<pq::opt::ControlIndividual>;
+using Algo = algevo::algo::CrossEntropyMethod<pq::cem_opt::ControlIndividual>;
 
 namespace pq
 {
@@ -27,25 +28,19 @@ namespace pq
             {
                 _train_input = Eigen::MatrixXd(8, pq::Value::Param::Train::collection_steps);
                 _train_target = Eigen::MatrixXd(3, pq::Value::Param::Train::collection_steps);
-                _params.dim = pq::opt::ControlIndividual::dim;
-                _params.pop_size = pq::Value::Param::Opt::pop_size;
-                _params.num_elites = pq::Value::Param::Opt::num_elites;
-                _params.max_value = Algo::x_t::Constant(_params.dim, pq::Value::Param::Opt::max_value);
-                _params.min_value = Algo::x_t::Constant(_params.dim, pq::Value::Param::Opt::min_value);
-                _params.init_std = Algo::x_t::Constant(_params.dim, pq::Value::Param::Opt::init_std);
             }
 
-            std::vector<double> run(pq::sim::Visualizer &v)
+            std::vector<double> run(Optimizer &optimizer, pq::sim::Visualizer &v)
             {
                 _visualize = true;
                 _v = v;
-                return _run();
+                return _run(optimizer);
             }
 
-            std::vector<double> run()
+            std::vector<double> run(Optimizer &optimizer)
             {
                 _visualize = false;
-                return _run();
+                return _run(optimizer);
             }
 
             Eigen::MatrixXd get_train_input()
@@ -63,18 +58,17 @@ namespace pq
                 _run_iter = run;
             }
 
-        private:
+        protected:
             Eigen::MatrixXd _train_input;
             Eigen::MatrixXd _train_target;
-            Algo::Params _params;
             int _episode = 1;
             int _run_iter = -1;
             bool _visualize = false;
             pq::sim::Visualizer _v;
 
-            std::vector<double> _run()
+            std::vector<double> _run(Optimizer &optimizer)
             {
-                _params.init_mu = Algo::x_t::Constant(_params.dim, pq::Value::Param::Opt::init_mu);
+                optimizer.reinit();
 
                 pq::sim::PlanarQuadrotor p(pq::Value::Constant::mass, pq::Value::Constant::inertia, pq::Value::Constant::length);
 
@@ -99,35 +93,28 @@ namespace pq
                             std::this_thread::sleep_for(std::chrono::milliseconds((int)(1000 * (p.get_sim_time() - total_time.count()))));
                         }
                     }
+
                     pq::Value::init_state = p.get_state();
 
                     auto start = std::chrono::high_resolution_clock::now();
 
-                    Algo cem(_params);
+                    Eigen::VectorXd controls = optimizer.next(p.get_state(), pq::Value::target);
+                    std::cout << controls.transpose() << std::endl;
 
-                    for (int j = 0; j < pq::Value::Param::Opt::steps; ++j)
-                    {
-                        cem.step();
-                    }
-                    auto end = std::chrono::high_resolution_clock::now();
-
-                    elapsed += end - start;
-
-                    _params.init_mu = cem.best();
-                    Eigen::Vector2d controls = cem.best().segment(0, 2);
+                    elapsed += std::chrono::high_resolution_clock::now() - start;
 
                     p.update(controls, pq::Value::Param::Sim::dt);
                     errors[i] = (pq::Value::target.segment(0, 6) - p.get_state().segment(0, 6)).squaredNorm();
 
                     _train_input.col(i) = (Eigen::Vector<double, 8>() << pq::Value::init_state, controls).finished();
-                    _train_target.col(i) = p.get_last_ddq() - pq::opt::dynamic_model_predict(pq::Value::init_state, controls);
+                    _train_target.col(i) = p.get_last_ddq() - pq::dynamic_model_predict(pq::Value::init_state, controls, optimizer.model_params());
 
                     std::stringstream ss;
                     ss << std::fixed << std::setprecision(2) << "Control frequency: " << control_freq
                        << " Hz, angle: " << p.get_state()[2] * 360 / M_PI
                        << " deg, time: " << p.get_sim_time()
                        << " sec (ratio " << pq::Value::Param::Sim::dt / std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::high_resolution_clock::now() - real_start).count()
-                       << "), MPC mass: " << pq::Value::Param::Opt::mass
+                       << "), MPC mass: " << pq::Value::Param::CEMOpt::mass
                        << " kg, episode: " << _episode;
                     if (_run_iter != -1)
                     {
@@ -136,7 +123,7 @@ namespace pq
                     if (_visualize)
                     {
                         _v.set_message(ss.str());
-                        _v.show(p, {pq::Value::Param::Opt::target_x, pq::Value::Param::Opt::target_y});
+                        _v.show(p, {pq::Value::Param::CEMOpt::target_x, pq::Value::Param::CEMOpt::target_y});
                     }
 
                     ++count;

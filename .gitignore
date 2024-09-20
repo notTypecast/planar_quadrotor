@@ -1,5 +1,4 @@
-main_cem
-main_num
-main_num.cpp
+build/main_cem
+build/main_num
 .vscode/
 TODO.txt

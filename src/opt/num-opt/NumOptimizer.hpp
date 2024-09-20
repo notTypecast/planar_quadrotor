@@ -97,7 +97,7 @@ namespace pq
             Eigen::VectorXd _model_params;
 
             void _setup(const Eigen::VectorXd &init, const Eigen::VectorXd &target)
-            {
+            {                
                 _opti = Opti();
                 _x = _opti.variable(3, _H + 1);
                 _u = _opti.variable(3, _H + 1);
@@ -116,11 +116,25 @@ namespace pq
                 _opti.subject_to(_u(Slice(), 0) == 0);
                 _opti.subject_to(_u(Slice(), _H) == 0);
 
-                for (int i = 0; i < _H; ++i)
+                if (pq::Value::Param::SymNN::use)
                 {
-                    _opti.subject_to(_a(0, i) == -(_F(0, i) + _F(1, i)) * sin(_x(2, i)) / _m);
-                    _opti.subject_to(_a(1, i) == (_F(0, i) + _F(1, i)) * cos(_x(2, i)) / _m - _g);
-                    _opti.subject_to(_a(2, i) == (_F(1, i) - _F(0, i)) * _l / (2 * _I));
+                    for (int i = 0; i < _H; ++i)
+                    {
+                        MX state = vertcat(_x(Slice(), i), _u(Slice(), i), _F(Slice(), i));
+                        MX l = pq::Value::Param::SymNN::learned_model->forward(state);
+
+                        _opti.subject_to(_a(0, i) == -(_F(0, i) + _F(1, i)) * sin(_x(2, i)) / _m + l(0));
+                        _opti.subject_to(_a(1, i) == (_F(0, i) + _F(1, i)) * cos(_x(2, i)) / _m - _g + l(1));
+                        _opti.subject_to(_a(2, i) == (_F(1, i) - _F(0, i)) * _l / (2 * _I) + l(2));
+                    }
+                }
+                else {
+                    for (int i = 0; i < _H; ++i)
+                    {
+                        _opti.subject_to(_a(0, i) == -(_F(0, i) + _F(1, i)) * sin(_x(2, i)) / _m);
+                        _opti.subject_to(_a(1, i) == (_F(0, i) + _F(1, i)) * cos(_x(2, i)) / _m - _g);
+                        _opti.subject_to(_a(2, i) == (_F(1, i) - _F(0, i)) * _l / (2 * _I));
+                    }
                 }
 
                 for (int i = 1; i < _H + 1; ++i)
@@ -129,7 +143,11 @@ namespace pq
                     _opti.subject_to(_u(Slice(), i) == _u(Slice(), i - 1) + _a(Slice(), i - 1) * dt);
                 }
 
-                _opti.solver("ipopt");
+                Dict opts;
+                opts["ipopt.print_level"] = 0;
+                opts["print_time"] = false;
+
+                _opti.solver("ipopt", opts);
             }
         };
     }

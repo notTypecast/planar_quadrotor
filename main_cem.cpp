@@ -6,17 +6,19 @@
 #include <fstream>
 #include <memory>
 
+#define CEM_OPT 1
+
 #include "src/params.hpp"
 #include "src/sim/PlanarQuadrotor.hpp"
 #include "src/sim/Visualizer.hpp"
-#include "src/opt/cem-opt/CEMOptimizer.hpp"
 #include "src/opt/cem-opt/LearnedModel.hpp"
+#include "src/opt/cem-opt/CEMOptimizer.hpp"
 #include "src/train/Episode.hpp"
 
 int main(int argc, char **argv)
 {
     pq::Value::target << pq::Value::Param::CEMOpt::target_x, pq::Value::Param::CEMOpt::target_y, 0, 0, 0, 0;
-    pq::Value::learned_model = std::make_unique<pq::cem_opt::NNModel>(std::vector<int>{12, 6, 4});
+    pq::Value::Param::SimpleNN::learned_model = std::make_unique<pq::cem_opt::NNModel>(std::vector<int>{12, 6, 4});
 
     double masses[] = {4, 8, 16};
     std::vector<std::vector<double>> errors_per_episode(pq::Value::Param::Train::runs * pq::Value::Param::Train::episodes);
@@ -36,7 +38,7 @@ int main(int argc, char **argv)
         {
             std::srand(std::time(NULL));
             std::cout << "Run " << j << std::endl;
-            pq::Value::learned_model->reset();
+            pq::Value::Param::SimpleNN::learned_model->reset();
             pq::train::Episode episode;
             episode.set_run(j + 1);
 
@@ -45,7 +47,7 @@ int main(int argc, char **argv)
             for (int k = 0; k < pq::Value::Param::Train::episodes; ++k)
             {
                 std::cout << k << " " << std::flush;
-                errors_per_episode[run_idx + k] = episode.run(optimizer, v);
+                errors_per_episode[run_idx + k] = episode.run(optimizer);
                 /*
                 // Early stopping if the change in error is smaller than a threshold
                 // This will not work if writing to a file
@@ -56,7 +58,9 @@ int main(int argc, char **argv)
                 }
                 */
 
-                pq::Value::learned_model->train(episode.get_train_input(), episode.get_train_target());
+                std::cout << episode.get_train_target().col(0).transpose() << std::endl;
+                std::cout << "NN sample: " << pq::Value::Param::SimpleNN::learned_model->predict(episode.get_train_input().col(0)).transpose() << std::endl;
+                pq::Value::Param::SimpleNN::learned_model->train(episode.get_train_input(), episode.get_train_target());
             }
             std::cout << std::endl;
         }

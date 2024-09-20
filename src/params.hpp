@@ -3,6 +3,11 @@
 #include <Eigen/Core>
 #include <memory>
 
+namespace symnn
+{
+    class SymNN;
+}
+
 namespace pq
 {
     namespace cem_opt
@@ -27,7 +32,7 @@ namespace pq
             namespace Sim
             {
                 constexpr double dt = 0.05;                 // simulation time step
-                constexpr bool sync_with_real_time = false; // whether to sync simulation with real time (ratio <= 1)
+                constexpr bool sync_with_real_time = true; // whether to sync simulation with real time (ratio <= 1)
             }
             namespace CEMOpt
             {
@@ -49,19 +54,30 @@ namespace pq
             }
             namespace SimpleNN
             {
+#ifdef CEM_OPT
+                std::unique_ptr<pq::cem_opt::NNModel> learned_model;
+#endif
                 constexpr int epochs = 10000; // number of epochs for training
             }
             namespace NumOpt
             {
                 constexpr int target_x = 10;                           // target x position
                 constexpr int target_y = 10;                           // target y position
-                constexpr int horizon = 100;                           // Horizon
+                constexpr int horizon = 50;                           // Horizon
                 constexpr double dt = Sim::dt;                         // optimization time step
-                constexpr double F_max = Constant::mass * Constant::g; // maximum force
+                constexpr double F_max = 16 * Constant::mass * Constant::g; // maximum force
+            }
+            namespace SymNN
+            {
+#ifdef NUM_OPT
+                std::unique_ptr<symnn::SymNN> learned_model;
+#endif
+                bool use = false;
+                constexpr int epochs = 100;
             }
             namespace Train
             {
-                constexpr int collection_steps = 400; // number of steps to collect data for training (per episode)
+                constexpr int collection_steps = 50; // number of steps to collect data for training (per episode)
                 constexpr int episodes = 10;          // number of episodes to train
                 constexpr int runs = 5;               // number of runs to train (for averaging)
             }
@@ -69,8 +85,6 @@ namespace pq
 
         Eigen::Vector<double, 6> init_state;
         Eigen::Vector<double, 6> target;
-
-        std::unique_ptr<pq::cem_opt::NNModel> learned_model;
     }
 }
 

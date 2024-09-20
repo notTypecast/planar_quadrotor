@@ -26,15 +26,15 @@ namespace symnn
             _X = MX::sym("X", input_size);
             _Y = MX::sym("Y", output_size);
 
-            _all_params.push_back(_X);
-            _all_params.push_back(_Y);
+            std::vector<MX> all_params;
+            all_params.push_back(_X);
 
             _W.push_back(MX::sym("W0", hidden_layers[0], input_size));
             _b.push_back(MX::sym("b0", hidden_layers[0]));
             MX prev = relu(mtimes(_W[0], _X) + _b[0]);
 
-            _all_params.push_back(_W[0]);
-            _all_params.push_back(_b[0]);
+            all_params.push_back(_W[0]);
+            all_params.push_back(_b[0]);
 
             for (int i = 1; i < hidden_layers.size(); ++i)
             {
@@ -42,27 +42,27 @@ namespace symnn
                 _b.push_back(MX::sym("b" + std::to_string(i), hidden_layers[i]));
                 prev = relu(mtimes(_W[i], prev) + _b[i]);
 
-                _all_params.push_back(_W[i]);
-                _all_params.push_back(_b[i]);
+                all_params.push_back(_W[i]);
+                all_params.push_back(_b[i]);
             }
 
             _W.push_back(MX::sym("Wout", output_size, hidden_layers.back()));
             _b.push_back(MX::sym("bout", output_size));
 
-            _all_params.push_back(_W.back());
-            _all_params.push_back(_b.back());
+            all_params.push_back(_W.back());
+            all_params.push_back(_b.back());
 
             _out = mtimes(_W.back(), prev) + _b.back();
-            _out_fn = Function("out", _all_params, {_out});
+            _out_fn = Function("out", all_params, {_out});
 
             _loss = sumsqr(_Y - _out);
 
-            for (int i = 2; i < _all_params.size(); ++i)
+            for (int i = 1; i < all_params.size(); ++i)
             {
-                _nn_values.push_back(DM::rand(_all_params[i].size1(), _all_params[i].size2()));
+                _nn_values.push_back(DM::rand(all_params[i].size1(), all_params[i].size2()));
             }
 
-            std::vector<MX> opt_vars(_all_params.size() - 2);
+            std::vector<MX> opt_vars(all_params.size() - 1);
             for (int i = 0; i < _W.size(); ++i)
             {
                 opt_vars[2*i] = reshape(_W[i], -1, 1);
@@ -81,15 +81,8 @@ namespace symnn
                 X(i) = input(i);
             }
 
-            DM Y = DM(_output_size);
-
-            std::vector<DM> params;
-            params.push_back(X);
-            params.push_back(Y);
-            for (int i = 0; i < _nn_values.size(); ++i)
-            {
-                params.push_back(_nn_values[i]);
-            }
+            std::vector<DM> params(_nn_values.begin(), _nn_values.end());
+            params.insert(params.begin(), X);
 
             DM out = _out_fn(params)[0];
 
@@ -101,6 +94,11 @@ namespace symnn
             }
 
             return output;
+        }
+
+        MX forward(MX &input)
+        {
+            return substitute(_out_substituted, _X, input);
         }
 
         void backward(const Eigen::VectorXd &input, const Eigen::VectorXd &target)
@@ -128,6 +126,7 @@ namespace symnn
             Dict opts;
             opts["ipopt.print_level"] = 0;
             opts["print_time"] = false;
+            opts["ipopt.tol"] = 1e-2;
 
             Function solver = nlpsol("solver", "ipopt", nlp, opts);
 
@@ -152,16 +151,35 @@ namespace symnn
                 _nn_values[i] = reshape(out(Slice(offset, offset + param_size), 0), _nn_values[i].size1(), _nn_values[i].size2());
                 offset += param_size;
             }
+
+            _out_substituted = _out;
+            for (int i = 0; i < _W.size(); ++i)
+            {
+                _out_substituted = substitute(_out_substituted, _W[i], _nn_values[2*i]);
+                _out_substituted = substitute(_out_substituted, _b[i], _nn_values[2*i + 1]);
+            }
         }
 
-        void train(const Eigen::MatrixXd &input, const Eigen::MatrixXd &target, int epochs)
+        void train(const Eigen::MatrixXd &input, const Eigen::MatrixXd &target)
         {
-            for (int i = 0; i < input.cols(); ++i)
+            for (int j = 0; j < input.cols(); ++j)
             {
-                Eigen::VectorXd in = input.col(i);
-                Eigen::VectorXd tar = target.col(i);
+                backward(input.col(j), target.col(j));
+            }
+        }
 
-                backward(in, tar);
+        void reset()
+        {
+            for (int i = 0; i < _nn_values.size(); ++i)
+            {
+                _nn_values[i] = DM::rand(_nn_values[i].size1(), _nn_values[i].size2());
+            }
+
+            _out_substituted = _out;
+            for (int i = 0; i < _W.size(); ++i)
+            {
+                _out_substituted = substitute(_out_substituted, _W[i], _nn_values[2*i]);
+                _out_substituted = substitute(_out_substituted, _b[i], _nn_values[2*i + 1]);
             }
         }
 
@@ -173,8 +191,8 @@ namespace symnn
         Function _out_fn;
         MX _loss;
 
-        std::vector<MX> _all_params;
         std::vector<DM> _nn_values;
+        MX _out_substituted;
 
         MX _opt_vars;
     };

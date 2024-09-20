@@ -23,9 +23,9 @@ namespace pq
                 {
                     Eigen::Vector2d controls = x.block<1, 2>(0, i).transpose();
                     Eigen::Vector3d ddq = pq::dynamic_model_predict(state, controls, pq::Value::Param::CEMOpt::model_params);
-                    if (pq::Value::learned_model->trained())
+                    if (pq::Value::Param::SimpleNN::learned_model->trained())
                     {
-                        ddq += pq::Value::learned_model->predict((Eigen::Vector<double, 8>() << state, controls).finished());
+                        ddq += pq::Value::Param::SimpleNN::learned_model->predict((Eigen::Vector<double, 8>() << state, controls).finished());
                     }
 
                     state.segment(0, 3) += state.segment(3, 3) * pq::Value::Param::Sim::dt + 0.5 * ddq * pq::Value::Param::Sim::dt * pq::Value::Param::Sim::dt;

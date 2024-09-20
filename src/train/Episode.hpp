@@ -6,16 +6,13 @@
 #include <sstream>
 #include <iomanip>
 #include <memory>
+#include <thread>
 
 #include "src/params.hpp"
 #include "src/opt/Optimizer.hpp"
 #include "src/opt/DynamicModel.hpp"
 #include "src/sim/PlanarQuadrotor.hpp"
 #include "src/sim/Visualizer.hpp"
-
-#include "algevo/src/algevo/algo/cem.hpp"
-
-using Algo = algevo::algo::CrossEntropyMethod<pq::cem_opt::ControlIndividual>;
 
 namespace pq
 {
@@ -99,7 +96,6 @@ namespace pq
                     auto start = std::chrono::high_resolution_clock::now();
 
                     Eigen::VectorXd controls = optimizer.next(p.get_state(), pq::Value::target);
-                    std::cout << controls.transpose() << std::endl;
 
                     elapsed += std::chrono::high_resolution_clock::now() - start;
 

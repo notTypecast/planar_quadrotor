@@ -1,5 +1,5 @@
 # HMPC Method
-Implementation of the HMPC (Hybrid MPC) method. A multi-layer perceptron is used to supplement a dynamic model of a system, enabling the resulting _hybrid model_ to learn via a online appoach and correct model uncertainties.
+Implementation of the HMPC (Hybrid MPC) method. A multi-layer perceptron is used to supplement a dynamic model of a system, enabling the resulting _hybrid model_ to learn via an online appoach and correct model uncertainties.
 
 ## Execution Examples
 Regular MPC with a model without uncertainties:
@@ -49,7 +49,7 @@ $$\Large
         \frac{(c_1+c_2)cos(q_3)}{m} - g\\\\
         \frac{(c_2 - c_1)l}{2I}
     \end{bmatrix}
-\end{align}
+\end{align} \tag{1}
 $$
 
 Where:
@@ -60,7 +60,7 @@ Where:
 
 Since the simulator and the optimizer use the exact same dynamic model, this works perfectly on its own. As long as an appropriate cost function is used, the optimizer is easily able to calculate the required controls to reach the target position.
 
-Next, it is necessary to mimic a situation in which the dynamic model is either not known, or is too complex to account for. In order to do this, there needs to be a mismatch between the actual dynamic model, used by the simulator, and the dynamic model used by the optimizer to find the optimal controls. There are multiple ways to do this, but in this repository, we alter the mass (and subsequently inertia) used by the optimizer.
+Next, it is necessary to mimic a situation in which the dynamic model is either not known, or is too complex to account for. In order to do this, there needs to be a mismatch between the actual dynamic model used by the simulator and the dynamic model used by the optimizer to find the optimal controls. There are multiple ways to do this, but in this repository, we alter the mass (and subsequently inertia) used by the optimizer.
 
 With a large enough difference between the two gravitational acceleration values, the controls provided by the optimizer result in movement that leads the PQ far from the desired target position.
 
@@ -99,14 +99,14 @@ $$
 
 Where $\textit{l}(\cdot)$ is the learned model.
 
-Note that, as seen in $(1)$, the dynamic model only uses the angular position value, $q_3$. Thus, the entire state is not actually necessary and, in fact, we would likely have better performance if we only passed $q_3$ as an input to our learned model. However, in a real-world scenario, we would usually not be aware of which parameters of the state are or are not useful. Therefore, we pass the entire state vector and assume that any non-useful parameters will end up not contributing to the result.
+Note that the dynamic model only uses the angular position value, $q_3$. Thus, the entire state is not actually necessary and, in fact, we would likely have better performance if we only passed $q_3$ as an input to our learned model. However, in a real-world scenario, we would usually not be aware of which parameters of the state are or are not useful. Therefore, we pass the entire state vector and assume that any non-useful parameters will end up not contributing to the result.
 
 In this repository, a neural network is used to learn this difference. We use the linked library `simple_nn` to initialize a neural network and train it using an episodic approach. This consists of running the simulation and optimization as-is for `n` steps, which make up an episode. We then train the neural network using all collected data during the episode. Following this, we repeat the process again for `m` episodes, or until the change in error between episodes is smaller than a specific threshold value.
 
 This entire process is repeated for `k` runs. We do this to collect data for multiple runs and get a mean error value per step per episode.
 
 #### Numerical optimization
-Instead of using CEM to calculate the optimal controls, there is also the option to use numerical optimization. This is implemented using CasADi. The dynamic model has been implemented symbolically, allowing for optimization of the control forces based on the given dynamics.
+Instead of using CEM to calculate the optimal controls, we also provide the option of using numerical optimization. This is implemented using CasADi. The dynamic model has been implemented symbolically, allowing for optimization of the control forces based on the given dynamics.
 
 Additionally, using the symbolic neural network, a learned model can be trained similarly to the above, to learn differences between the actual and the known dynamics.
 
@@ -126,7 +126,7 @@ The script is also able to recognize certain commands, specifically for setting 
 #### Dynamic model
 As mentioned, only numerical optimization is implemented with the 3D quadrotor system. The dynamics for the 3D quadrotor are slightly more complicated than those of the planar quadrotor.
 
-Since our model uses rotor speeds as the control input, those need to be converted to thrust and torque, before they can be used to calculate acceleration. This is generally done by multiplying with constants $K_f$ and $K_t$. As such, to calculate the total thrust and torque, in the body frame, we use the below equations.
+Since our model uses rotor speeds as the control input, those need to be converted to thrust and torque before they can be used to calculate acceleration. This is generally done by multiplying with constants $K_f$ and $K_t$. As such, to calculate the total thrust and torque in the body frame, we use the below equations.
 
 $$\Large
     \begin{align}
@@ -199,8 +199,15 @@ $$\Large
     \end{align}
 $$
 
-Where:
-* $q = \begin{bmatrix} w & x & y & z \end{bmatrix}^T$ is the quaternion representing the orientation.
+Where
+
+$$
+    \begin{align}
+        q = \begin{bmatrix} w & x & y & z \end{bmatrix}^T
+    \end{align}
+$$
+
+is the quaternion representing the orientation.
 
 Using $\dot{\mathbf{q}}$, we can integrate the orientation quaternion. Note that the above formula requires that the quaternion be a unit quaternion, but the produced quaternion after integration will not be a unit quaternion. As such, the produced quaternion must then be normalized.
 
